@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>水電瓦斯費分攤工具 - 專業版</title>
+    <title>水電瓦斯結算小工具</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -132,7 +132,7 @@
 <body>
 
 <div class="container">
-    <h1>🏠 水電瓦斯結算小工具</h1>
+    <h1>🏠水電瓦斯結算小工具</h1>
 
     <div class="card">
         <div class="checkbox-group">
@@ -148,23 +148,23 @@
 
     <div class="card">
         <div class="grid">
-            <div class="form-group"><label>當期水費總額</label><input type="number" id="totalWater" placeholder="0"></div>
-            <div class="form-group"><label>當期電費總額</label><input type="number" id="totalElec" placeholder="0"></div>
-            <div class="form-group"><label>當期瓦斯總額</label><input type="number" id="totalGas" placeholder="0"></div>
-            <div class="form-group"><label>房東前期電錶 (唯讀)</label><input type="number" id="prevMeter" value="2053" readonly></div>
+            <div class="form-group"><label>本期水費總額</label><input type="number" id="totalWater" placeholder="0"></div>
+            <div class="form-group"><label>本期電費總額</label><input type="number" id="totalElec" placeholder="0"></div>
+            <div class="form-group"><label>本期瓦斯總額</label><input type="number" id="totalGas" placeholder="0"></div>
+            <div class="form-group"><label>房東前期電錶</label><input type="number" id="prevMeter" value="2053" readonly></div>
             <div class="form-group"><label>房東本期電錶</label><input type="number" id="currMeter" placeholder="數字"></div>
-            <div class="form-group"><label>平均電價</label><input type="number" id="avgPrice" step="0.1" placeholder="5.0"></div>
+            <div class="form-group"><label>平均電價</label><input type="number" id="avgPrice" step="0.1" placeholder="2.3"></div>
         </div>
         <div class="btn-group">
-            <button class="btn-calc" onclick="calculate()">🪄 開始計算</button>
-            <button class="btn-save" id="saveBtn" onclick="saveToHistory()" disabled>💾 儲存紀錄</button>
+            <button class="btn-calc" onclick="calculate()">🪄開始計算</button>
+            <button class="btn-save" id="saveBtn" onclick="saveToHistory()" disabled>💾儲存紀錄</button>
             <button class="btn-reset" onclick="resetForm(false)">重置</button>
         </div>
     </div>
 
     <div id="resultArea" class="result-section">
         <div class="role-card landlord-card">
-            <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px;">👤 房東結算明細</h3>
+            <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px;">👤房東明細</h3>
             <div class="result-row"><span>電費月份</span><span id="resElecMonth" style="font-weight:bold;"></span></div>
             <div class="result-row"><span>水費總額</span><span id="resWaterTotal"></span></div>
             <div class="result-row"><span>使用水費</span><span id="resLWater" class="highlight-blue"></span></div>
@@ -176,14 +176,14 @@
 
         <div class="grid">
             <div class="role-card roommate-a">
-                <h3 style="margin-top:0; color:var(--friend-a);">👦 朋朋</h3>
+                <h3 style="margin-top:0; color:var(--friend-a);">🦉朋得</h3>
                 <div class="result-row"><span>水費</span><span id="resAWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resAElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resAGas"></span></div>
                 <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resATotal" style="font-weight:bold; font-size:1.2rem; color:var(--friend-a);"></span></div>
             </div>
             <div class="role-card roommate-b">
-                <h3 style="margin-top:0; color: var(--friend-b);">👧 阿珍</h3>
+                <h3 style="margin-top:0; color: var(--friend-b);">🐣阿珍</h3>
                 <div class="result-row"><span>水費</span><span id="resBWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resBElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resBGas"></span></div>
@@ -193,13 +193,13 @@
     </div>
 
     <div class="card">
-        <h3 style="margin-top:0">📋 歷史結算紀錄</h3>
+        <h3 style="margin-top:0">📋歷史結算紀錄</h3>
         <div class="history-container">
             <div class="history-grid-layout history-header">
                 <div>結算月份</div>
                 <div>費用總額</div>
                 <div class="center-label">房東應繳</div>
-                <div class="center-label">朋朋應繳</div>
+                <div class="center-label">朋得應繳</div>
                 <div class="center-label">阿珍應繳</div>
                 <div style="text-align: right;">儲存時間</div>
             </div>
@@ -340,7 +340,7 @@
                 <div style="text-align: right;">
                     <span class="time-display">${item.saveTime || '-'}</span>
                     <div class="action-btns">
-                        <button class="btn-sm" onclick="loadHistory(${index})">📝 載入</button>
+                        <button class="btn-sm" onclick="loadHistory(${index})">📝變更</button>
                         <button class="btn-sm" style="color:var(--danger)" onclick="deleteHistory(${index})">🗑️ 刪除</button>
                     </div>
                 </div>`;
