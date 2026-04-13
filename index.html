@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水電瓦斯費分攤工具 - 強化版</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #059669;
+            --danger: #dc2626;
+            --bg-gray: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --accent-blue: #0056b3;
+            --accent-red: #d93025;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+        input[type="number"], input[type="text"], input[type="month"] {
+            width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
+        }
+        input:read-only { background-color: #f1f5f9; cursor: not-allowed; }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 15px; background: #eff6ff; padding: 10px; border-radius: 6px;
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-calc { background-color: var(--primary); color: white; }
+        .btn-save { background-color: var(--success); color: white; }
+        .btn-reset { background-color: #64748b; color: white; }
+
+        /* 結果顯示區 */
+        .result-section { display: none; margin-top: 30px; }
+        .role-card { padding: 20px; border-left: 6px solid #ddd; margin-bottom: 20px; background: white; border-radius: 0 12px 12px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* 房東專屬截圖風格 - 顏色強化 */
+        .landlord-card {
+            border-color: var(--primary);
+            background: linear-gradient(to bottom right, #ffffff, #f0f9ff);
+            border: 2px solid #e0e7ff;
+            border-left: 8px solid var(--primary);
+        }
+
+        /* 房東特定金額顏色 */
+        .highlight-blue { color: var(--accent-blue); font-weight: 700; font-size: 1.1rem; }
+        .highlight-red { color: var(--accent-red); font-weight: 800; font-size: 1.4rem; }
+
+        .roommate-a { border-color:#37BEB0; }
+        .roommate-b { border-color:#79C5CF; }
+
+        .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; align-items: center; }
+        .total-row { border-top: 2px solid #cbd5e1; margin-top: 10px; padding-top: 15px; }
+
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .action-btns { display: flex; gap: 5px; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; flex: none; }
+
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏠水電瓦斯結算小工具</h1>
+
+    <div class="card">
+        <div class="checkbox-group">
+            <input type="checkbox" id="manualMonthToggle" onchange="toggleMonthEdit()">
+            <label for="manualMonthToggle">手動調整月份</label>
+        </div>
+        <div class="grid">
+            <div class="form-group"><label>水費結算月份</label><input type="text" id="waterMonth" readonly></div>
+            <div class="form-group"><label>電費結算月份</label><input type="text" id="elecMonth" readonly></div>
+            <div class="form-group"><label>瓦斯費結算月份</label><input type="text" id="gasMonth" readonly></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="grid">
+            <div class="form-group"><label>當期水費總額</label><input type="number" id="totalWater" placeholder="0"></div>
+            <div class="form-group"><label>當期電費總額</label><input type="number" id="totalElec" placeholder="0"></div>
+            <div class="form-group"><label>當期瓦斯費總額</label><input type="number" id="totalGas" placeholder="0"></div>
+            <div class="form-group"><label>房東前期電錶數</label><input type="number" id="prevMeter" value="2053"></div>
+            <div class="form-group"><label>房東本期電錶數</label><input type="number" id="currMeter" placeholder="請輸入數字"></div>
+            <div class="form-group"><label>平均電價 (元/度)</label><input type="number" id="avgPrice" step="0.1" placeholder="5.0"></div>
+        </div>
+        <div class="btn-group">
+            <button class="btn-calc" onclick="calculate()">🪄 開始計算</button>
+            <button class="btn-save" id="saveBtn" onclick="saveToHistory()" disabled>💾 儲存紀錄</button>
+            <button class="btn-reset" onclick="resetForm()">重置</button>
+        </div>
+    </div>
+
+    <div id="resultArea" class="result-section">
+        <div class="role-card landlord-card">
+            <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px;">👤房東結算明細 </h3>
+            <div class="result-row"><span>電費月份</span><span id="resElecMonth" style="font-weight:bold;"></span></div>
+            <div class="result-row"><span>水費月份</span><span id="resWaterMonth"></span></div>
+            <div class="result-row"><span>水費總額</span><span id="resWaterTotal"></span></div>
+            <div class="result-row"><span>使用水費</span><span id="resLWater" class="highlight-blue"></span></div>
+            <div class="result-row"><span>平均電價</span><span id="resAvgPrice"></span></div>
+            <div class="result-row"><span>使用度數 (<span id="resMeterDetail"></span>)</span><span id="resUsedMeter"></span></div>
+            <div class="result-row"><span>使用電費</span><span id="resLElec" class="highlight-blue"></span></div>
+            <div class="result-row total-row"><span>應付總額</span><span id="resLTotal" class="highlight-red"></span></div>
+        </div>
+
+        <div class="grid">
+            <div class="role-card roommate-a">
+                <h3 style="margin-top:0; color:#37BEB0;">朋朋</h3>
+                <div class="result-row"><span>水費</span><span id="resAWater"></span></div>
+                <div class="result-row"><span>電費</span><span id="resAElec"></span></div>
+                <div class="result-row"><span>瓦斯費</span><span id="resAGas"></span></div>
+                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resATotal" style="font-weight:bold; font-size:1.2rem;"></span></div>
+            </div>
+            <div class="role-card roommate-b">
+                <h3 style="margin-top:0; color: #79C5CF;">阿珍</h3>
+                <div class="result-row"><span>水費</span><span id="resBWater"></span></div>
+                <div class="result-row"><span>電費</span><span id="resBElec"></span></div>
+                <div class="result-row"><span>瓦斯費</span><span id="resBGas"></span></div>
+                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resBTotal" style="font-weight:bold; font-size:1.2rem;"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>📋 歷史紀錄</h3>
+        <div style="overflow-x: auto;"><table class="history-table">
+            <thead><tr><th>電費月份</th><th>房東應繳</th><th>朋朋應繳</th><th>阿珍應繳</th><th>操作</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+        </table></div>
+    </div>
+</div>
+
+<script>
+    let historyData = JSON.parse(localStorage.getItem('utility_history')) || [];
+    let currentCalc = null;
+
+    window.onload = () => { updateMonths(); renderHistory(); if(historyData.length > 0) document.getElementById('prevMeter').value = historyData[0].currMeter; };
+
+    function updateMonths() {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth() + 1;
+        document.getElementById('elecMonth').value = `${y}-${m.toString().padStart(2, '0')}`;
+        document.getElementById('gasMonth').value = `${y}-${m.toString().padStart(2, '0')}`;
+        let wY = y, wM = m - 1; if (wM === 0) { wM = 12; wY = y - 1; }
+        document.getElementById('waterMonth').value = `${wY}-${wM.toString().padStart(2, '0')}`;
+    }
+
+    function toggleMonthEdit() {
+        const isManual = document.getElementById('manualMonthToggle').checked;
+        const fields = ['waterMonth', 'elecMonth', 'gasMonth'];
+        fields.forEach(id => { const el = document.getElementById(id); el.readOnly = !isManual; el.type = isManual ? 'month' : 'text'; });
+        if(!isManual) updateMonths();
+    }
+
+    function calculate() {
+        const data = {
+            waterMonth: document.getElementById('waterMonth').value,
+            elecMonth: document.getElementById('elecMonth').value,
+            gasMonth: document.getElementById('gasMonth').value,
+            totalWater: parseFloat(document.getElementById('totalWater').value) || 0,
+            totalElec: parseFloat(document.getElementById('totalElec').value) || 0,
+            totalGas: parseFloat(document.getElementById('totalGas').value) || 0,
+            prevMeter: parseFloat(document.getElementById('prevMeter').value) || 0,
+            currMeter: parseFloat(document.getElementById('currMeter').value) || 0,
+            avgPrice: parseFloat(document.getElementById('avgPrice').value) || 0
+        };
+
+        if (data.currMeter < data.prevMeter) { alert("本期電錶數字不可小於上次數字！"); return; }
+
+        const usedMeter = data.currMeter - data.prevMeter;
+        const landlordElec = Math.floor(usedMeter * data.avgPrice);
+        if (landlordElec > data.totalElec) { alert("錯誤：房東電費大於總電費！"); return; }
+
+        const remainingElec = data.totalElec - landlordElec;
+        const waterShare = Math.floor(data.totalWater / 3);
+        const gasShare = Math.floor(data.totalGas / 2);
+        const roommateElec = Math.floor(remainingElec / 2);
+
+        currentCalc = { ...data, 
+            resL: { water: waterShare, elec: landlordElec, total: waterShare + landlordElec, used: usedMeter },
+            resA: { water: waterShare, elec: roommateElec, gas: gasShare, total: waterShare + roommateElec + gasShare },
+            resB: { water: waterShare, elec: roommateElec, gas: gasShare, total: waterShare + roommateElec + gasShare }
+        };
+
+        displayResult(currentCalc);
+        document.getElementById('saveBtn').disabled = false;
+    }
+
+    function displayResult(res) {
+        document.getElementById('resultArea').style.display = 'block';
+        document.getElementById('resElecMonth').innerText = res.elecMonth;
+        document.getElementById('resWaterMonth').innerText = res.waterMonth;
+        document.getElementById('resWaterTotal').innerText = `$${res.totalWater}`;
+        document.getElementById('resLWater').innerText = `$${res.resL.water}`;
+        document.getElementById('resAvgPrice').innerText = `$${res.avgPrice}`;
+        document.getElementById('resMeterDetail').innerText = `${res.currMeter} - ${res.prevMeter}`;
+        document.getElementById('resUsedMeter').innerText = `${res.resL.used} 度`;
+        document.getElementById('resLElec').innerText = `$${res.resL.elec}`;
+        document.getElementById('resLTotal').innerText = `$${res.resL.total}`;
+
+        document.getElementById('resAWater').innerText = `$${res.resA.water}`;
+        document.getElementById('resAElec').innerText = `$${res.resA.elec}`;
+        document.getElementById('resAGas').innerText = `$${res.resA.gas}`;
+        document.getElementById('resATotal').innerText = `$${res.resA.total}`;
+
+        document.getElementById('resBWater').innerText = `$${res.resB.water}`;
+        document.getElementById('resBElec').innerText = `$${res.resB.elec}`;
+        document.getElementById('resBGas').innerText = `$${res.resB.gas}`;
+        document.getElementById('resBTotal').innerText = `$${res.resB.total}`;
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function saveToHistory() {
+        const index = historyData.findIndex(i => i.elecMonth === currentCalc.elecMonth);
+        if (index > -1) historyData[index] = currentCalc; else historyData.unshift(currentCalc);
+        localStorage.setItem('utility_history', JSON.stringify(historyData));
+        renderHistory();
+        alert("資料已儲存！");
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
+        historyData.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${item.elecMonth}</td><td>$${item.resL.total}</td><td>$${item.resA.total}</td><td>$${item.resB.total}</td>
+                <td class="action-btns">
+                    <button class="btn-sm btn-calc" onclick="loadHistory(${index})">編</button>
+                    <button class="btn-sm btn-reset" style="background:#dc2626" onclick="deleteHistory(${index})">刪</button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function loadHistory(index) {
+        const item = historyData[index];
+        const fields = ['totalWater', 'totalElec', 'totalGas', 'prevMeter', 'currMeter', 'avgPrice', 'waterMonth', 'elecMonth', 'gasMonth'];
+        fields.forEach(f => document.getElementById(f).value = item[f]);
+        calculate();
+    }
+
+    function deleteHistory(index) { if(confirm("確定刪除？")) { historyData.splice(index, 1); localStorage.setItem('utility_history', JSON.stringify(historyData)); renderHistory(); } }
+
+    function resetForm() {
+        if(confirm("確定清空？")) {
+            document.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
+            document.getElementById('prevMeter').value = historyData.length > 0 ? historyData[0].currMeter : "2053";
+            document.getElementById('resultArea').style.display = 'none';
+            document.getElementById('saveBtn').disabled = true;
+            updateMonths();
+        }
+    }
+</script>
+</body>
+</html>
