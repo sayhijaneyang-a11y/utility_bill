@@ -44,7 +44,14 @@
         input[type="number"], input[type="text"], input[type="month"] {
             width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
         }
-        input:read-only { background-color: #f1f5f9; cursor: not-allowed; }
+
+        /* --- 前期電錶鎖定樣式 --- */
+        input:read-only { 
+            background-color: #f1f5f9; 
+            cursor: not-allowed; 
+            color: #64748b;
+            border-style: dashed;
+        }
 
         .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; background: #eff6ff; padding: 10px; border-radius: 6px; }
 
@@ -66,7 +73,6 @@
         .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; align-items: center; }
         .total-row { border-top: 2px solid #cbd5e1; margin-top: 10px; padding-top: 15px; }
 
-        /* --- 歷史紀錄精準對齊修正 --- */
         .history-container {
             margin-top: 10px;
             background: #fff;
@@ -77,12 +83,11 @@
 
         .history-grid-layout {
             display: grid;
-            /* 欄位：結算月份, 費用總額, 房東, 朋朋, 阿珍, 儲存時間(含操作按鈕) */
             grid-template-columns: 130px 130px 100px 100px 100px 1fr;
             gap: 10px;
             align-items: center;
             padding: 12px 20px;
-            min-width: 900px; /* 確保內容不縮擠 */
+            min-width: 900px;
         }
 
         .history-header {
@@ -102,26 +107,17 @@
             font-size: 0.9rem;
         }
         .history-item:hover { background: #f8fafc; }
-        .history-item:last-child { border-bottom: none; }
 
         .month-tag div { font-size: 0.8rem; line-height: 1.4; }
         .month-tag span { font-weight: 700; color: var(--primary); margin-right: 4px; display: inline-block; width: 15px; }
 
         .amount-summary { font-size: 0.8rem; color: #64748b; line-height: 1.4; }
 
-        /* 分攤結果獨立格 */
-        .split-val { 
-            text-align: center; 
-            font-weight: 700; 
-            font-size: 0.95rem;
-            padding: 8px 0;
-            border-radius: 6px;
-        }
+        .split-val { text-align: center; font-weight: 700; font-size: 0.95rem; }
 
         .time-display { font-size: 0.75rem; color: #94a3b8; text-align: right; margin-bottom: 4px; display: block; }
         .action-btns { display: flex; gap: 6px; justify-content: flex-end; }
         .btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; border: 1px solid #e2e8f0; background: #fff; font-weight: bold; }
-        .btn-sm:hover { background: #f1f5f9; }
 
         @media (max-width: 900px) { 
             .history-header { display: none; }
@@ -155,14 +151,14 @@
             <div class="form-group"><label>當期水費總額</label><input type="number" id="totalWater" placeholder="0"></div>
             <div class="form-group"><label>當期電費總額</label><input type="number" id="totalElec" placeholder="0"></div>
             <div class="form-group"><label>當期瓦斯總額</label><input type="number" id="totalGas" placeholder="0"></div>
-            <div class="form-group"><label>房東前期電錶</label><input type="number" id="prevMeter" value="2053"></div>
+            <div class="form-group"><label>房東前期電錶 (唯讀)</label><input type="number" id="prevMeter" value="2053" readonly></div>
             <div class="form-group"><label>房東本期電錶</label><input type="number" id="currMeter" placeholder="數字"></div>
             <div class="form-group"><label>平均電價</label><input type="number" id="avgPrice" step="0.1" placeholder="5.0"></div>
         </div>
         <div class="btn-group">
             <button class="btn-calc" onclick="calculate()">🪄 開始計算</button>
             <button class="btn-save" id="saveBtn" onclick="saveToHistory()" disabled>💾 儲存紀錄</button>
-            <button class="btn-reset" onclick="resetForm()">重置</button>
+            <button class="btn-reset" onclick="resetForm(false)">重置</button>
         </div>
     </div>
 
@@ -180,14 +176,14 @@
 
         <div class="grid">
             <div class="role-card roommate-a">
-                <h3 style="margin-top:0; color:var(--friend-a);">🦉朋朋</h3>
+                <h3 style="margin-top:0; color:var(--friend-a);">👦 朋朋</h3>
                 <div class="result-row"><span>水費</span><span id="resAWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resAElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resAGas"></span></div>
                 <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resATotal" style="font-weight:bold; font-size:1.2rem; color:var(--friend-a);"></span></div>
             </div>
             <div class="role-card roommate-b">
-                <h3 style="margin-top:0; color: var(--friend-b);">🐣阿珍</h3>
+                <h3 style="margin-top:0; color: var(--friend-b);">👧 阿珍</h3>
                 <div class="result-row"><span>水費</span><span id="resBWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resBElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resBGas"></span></div>
@@ -216,7 +212,11 @@
     let historyData = JSON.parse(localStorage.getItem('utility_history')) || [];
     let currentCalc = null;
 
-    window.onload = () => { updateMonths(); renderHistory(); if(historyData.length > 0) document.getElementById('prevMeter').value = historyData[0].currMeter; };
+    window.onload = () => { 
+        updateMonths(); 
+        renderHistory(); 
+        if(historyData.length > 0) document.getElementById('prevMeter').value = historyData[0].currMeter; 
+    };
 
     function updateMonths() {
         const now = new Date(); const y = now.getFullYear(); const m = now.getMonth() + 1;
@@ -282,7 +282,7 @@
         document.getElementById('resATotal').innerText = `$${res.resA.total}`;
 
         document.getElementById('resBWater').innerText = `$${res.resB.water}`;
-        document.getElementById('resBElec').innerText = `$${res.resBElec || res.resB.elec}`; // 修正抓取
+        document.getElementById('resBElec').innerText = `$${res.resB.elec}`;
         document.getElementById('resBGas').innerText = `$${res.resB.gas}`;
         document.getElementById('resBTotal').innerText = `$${res.resB.total}`;
         window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
@@ -291,12 +291,12 @@
     function saveToHistory() {
         if(!currentCalc) return;
         
-        // 點擊儲存按鈕的瞬間抓取時間
         const now = new Date();
         const timestamp = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
         
         currentCalc.saveTime = timestamp;
 
+        // 保留您原本的邏輯：檢查月份是否相同來決定覆蓋或新增
         const index = historyData.findIndex(i => 
             i.elecMonth === currentCalc.elecMonth && 
             i.waterMonth === currentCalc.waterMonth && 
@@ -308,6 +308,9 @@
         localStorage.setItem('utility_history', JSON.stringify(historyData));
         renderHistory();
         alert("資料已成功儲存！");
+
+        // 儲存後自動重置（傳入 true 代表不需確認彈窗）
+        resetForm(true);
     }
 
     function renderHistory() {
@@ -337,7 +340,7 @@
                 <div style="text-align: right;">
                     <span class="time-display">${item.saveTime || '-'}</span>
                     <div class="action-btns">
-                        <button class="btn-sm" onclick="loadHistory(${index})">📝 編輯</button>
+                        <button class="btn-sm" onclick="loadHistory(${index})">📝 載入</button>
                         <button class="btn-sm" style="color:var(--danger)" onclick="deleteHistory(${index})">🗑️ 刪除</button>
                     </div>
                 </div>`;
@@ -354,13 +357,16 @@
 
     function deleteHistory(index) { if(confirm("確定刪除此筆紀錄？")) { historyData.splice(index, 1); localStorage.setItem('utility_history', JSON.stringify(historyData)); renderHistory(); } }
 
-    function resetForm() {
-        if(confirm("確定清空目前輸入？")) {
-            document.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
+    function resetForm(auto = false) {
+        if(auto || confirm("確定清空目前輸入？")) {
+            // 清空非唯讀的數值輸入
+            document.querySelectorAll('input[type="number"]:not([readonly])').forEach(i => i.value = '');
+            // 更新前期電錶為最新歷史紀錄的本期度數
             document.getElementById('prevMeter').value = historyData.length > 0 ? historyData[0].currMeter : "2053";
             document.getElementById('resultArea').style.display = 'none';
             document.getElementById('saveBtn').disabled = true;
             updateMonths();
+            currentCalc = null;
         }
     }
 </script>
