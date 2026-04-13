@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>水電瓦斯費分攤工具 - 強化版</title>
+    <title>水電瓦斯費分攤工具 - 專業版</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -14,6 +14,8 @@
             --text-main: #1e293b;
             --accent-blue: #0056b3;
             --accent-red: #d93025;
+            --friend-a: #37BEB0;
+            --friend-b: #79C5CF;
         }
 
         body {
@@ -25,7 +27,7 @@
             line-height: 1.5;
         }
 
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
         h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
 
         .card {
@@ -36,7 +38,7 @@
             margin-bottom: 24px;
         }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
         input[type="number"], input[type="text"], input[type="month"] {
@@ -44,60 +46,107 @@
         }
         input:read-only { background-color: #f1f5f9; cursor: not-allowed; }
 
-        .checkbox-group {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 15px; background: #eff6ff; padding: 10px; border-radius: 6px;
-        }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; background: #eff6ff; padding: 10px; border-radius: 6px; }
 
         .btn-group { display: flex; gap: 10px; margin-top: 20px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-calc { background-color: var(--primary); color: white; }
-        .btn-save { background-color: var(--success); color: white; }
+        .btn-save { background-color: #00d200; color: white; }
+        .btn-save:disabled { background-color: #cbd5e1; cursor: not-allowed; }
         .btn-reset { background-color: #64748b; color: white; }
 
-        /* 結果顯示區 */
         .result-section { display: none; margin-top: 30px; }
         .role-card { padding: 20px; border-left: 6px solid #ddd; margin-bottom: 20px; background: white; border-radius: 0 12px 12px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        
-        /* 房東專屬截圖風格 - 顏色強化 */
-        .landlord-card {
-            border-color: var(--primary);
-            background: linear-gradient(to bottom right, #ffffff, #f0f9ff);
-            border: 2px solid #e0e7ff;
-            border-left: 8px solid var(--primary);
-        }
-
-        /* 房東特定金額顏色 */
+        .landlord-card { border-color: var(--primary); background: linear-gradient(to bottom right, #ffffff, #f0f9ff); border: 2px solid #e0e7ff; border-left: 8px solid var(--primary); }
         .highlight-blue { color: var(--accent-blue); font-weight: 700; font-size: 1.1rem; }
         .highlight-red { color: var(--accent-red); font-weight: 800; font-size: 1.4rem; }
-
-        .roommate-a { border-color:#37BEB0; }
-        .roommate-b { border-color:#79C5CF; }
+        .roommate-a { border-color: var(--friend-a); }
+        .roommate-b { border-color: var(--friend-b); }
 
         .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; align-items: center; }
         .total-row { border-top: 2px solid #cbd5e1; margin-top: 10px; padding-top: 15px; }
 
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
-        .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        .action-btns { display: flex; gap: 5px; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; flex: none; }
+        /* --- 歷史紀錄精準對齊修正 --- */
+        .history-container {
+            margin-top: 10px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto;
+        }
 
-        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        .history-grid-layout {
+            display: grid;
+            /* 欄位：結算月份, 費用總額, 房東, 朋朋, 阿珍, 儲存時間(含操作按鈕) */
+            grid-template-columns: 130px 130px 100px 100px 100px 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 20px;
+            min-width: 900px; /* 確保內容不縮擠 */
+        }
+
+        .history-header {
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            text-align: center;
+        }
+        .history-header div { text-align: left; }
+        .history-header .center-label { text-align: center; }
+
+        .history-item {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+        .history-item:hover { background: #f8fafc; }
+        .history-item:last-child { border-bottom: none; }
+
+        .month-tag div { font-size: 0.8rem; line-height: 1.4; }
+        .month-tag span { font-weight: 700; color: var(--primary); margin-right: 4px; display: inline-block; width: 15px; }
+
+        .amount-summary { font-size: 0.8rem; color: #64748b; line-height: 1.4; }
+
+        /* 分攤結果獨立格 */
+        .split-val { 
+            text-align: center; 
+            font-weight: 700; 
+            font-size: 0.95rem;
+            padding: 8px 0;
+            border-radius: 6px;
+        }
+
+        .time-display { font-size: 0.75rem; color: #94a3b8; text-align: right; margin-bottom: 4px; display: block; }
+        .action-btns { display: flex; gap: 6px; justify-content: flex-end; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; border: 1px solid #e2e8f0; background: #fff; font-weight: bold; }
+        .btn-sm:hover { background: #f1f5f9; }
+
+        @media (max-width: 900px) { 
+            .history-header { display: none; }
+            .history-grid-layout { grid-template-columns: 1fr; gap: 10px; padding: 20px; min-width: auto; }
+            .history-item { border: 1px solid #e2e8f0; border-radius: 12px; margin: 10px; }
+            .center-label { text-align: left !important; }
+            .split-val { text-align: left; padding: 2px 0; }
+            .time-display { text-align: left; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🏠水電瓦斯結算小工具</h1>
+    <h1>🏠 水電瓦斯結算小工具</h1>
 
     <div class="card">
         <div class="checkbox-group">
             <input type="checkbox" id="manualMonthToggle" onchange="toggleMonthEdit()">
-            <label for="manualMonthToggle">手動調整月份</label>
+            <label for="manualMonthToggle" style="margin-bottom:0">手動調整月份</label>
         </div>
         <div class="grid">
-            <div class="form-group"><label>水費結算月份</label><input type="text" id="waterMonth" readonly></div>
-            <div class="form-group"><label>電費結算月份</label><input type="text" id="elecMonth" readonly></div>
-            <div class="form-group"><label>瓦斯費結算月份</label><input type="text" id="gasMonth" readonly></div>
+            <div class="form-group"><label>水費月份</label><input type="text" id="waterMonth" readonly></div>
+            <div class="form-group"><label>電費月份</label><input type="text" id="elecMonth" readonly></div>
+            <div class="form-group"><label>瓦斯月份</label><input type="text" id="gasMonth" readonly></div>
         </div>
     </div>
 
@@ -105,10 +154,10 @@
         <div class="grid">
             <div class="form-group"><label>當期水費總額</label><input type="number" id="totalWater" placeholder="0"></div>
             <div class="form-group"><label>當期電費總額</label><input type="number" id="totalElec" placeholder="0"></div>
-            <div class="form-group"><label>當期瓦斯費總額</label><input type="number" id="totalGas" placeholder="0"></div>
-            <div class="form-group"><label>房東前期電錶數</label><input type="number" id="prevMeter" value="2053"></div>
-            <div class="form-group"><label>房東本期電錶數</label><input type="number" id="currMeter" placeholder="請輸入數字"></div>
-            <div class="form-group"><label>平均電價 (元/度)</label><input type="number" id="avgPrice" step="0.1" placeholder="5.0"></div>
+            <div class="form-group"><label>當期瓦斯總額</label><input type="number" id="totalGas" placeholder="0"></div>
+            <div class="form-group"><label>房東前期電錶</label><input type="number" id="prevMeter" value="2053"></div>
+            <div class="form-group"><label>房東本期電錶</label><input type="number" id="currMeter" placeholder="數字"></div>
+            <div class="form-group"><label>平均電價</label><input type="number" id="avgPrice" step="0.1" placeholder="5.0"></div>
         </div>
         <div class="btn-group">
             <button class="btn-calc" onclick="calculate()">🪄 開始計算</button>
@@ -119,9 +168,8 @@
 
     <div id="resultArea" class="result-section">
         <div class="role-card landlord-card">
-            <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px;">👤房東結算明細 </h3>
+            <h3 style="margin-top:0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px;">👤 房東結算明細</h3>
             <div class="result-row"><span>電費月份</span><span id="resElecMonth" style="font-weight:bold;"></span></div>
-            <div class="result-row"><span>水費月份</span><span id="resWaterMonth"></span></div>
             <div class="result-row"><span>水費總額</span><span id="resWaterTotal"></span></div>
             <div class="result-row"><span>使用水費</span><span id="resLWater" class="highlight-blue"></span></div>
             <div class="result-row"><span>平均電價</span><span id="resAvgPrice"></span></div>
@@ -132,28 +180,35 @@
 
         <div class="grid">
             <div class="role-card roommate-a">
-                <h3 style="margin-top:0; color:#37BEB0;">朋朋</h3>
+                <h3 style="margin-top:0; color:var(--friend-a);">🦉朋朋</h3>
                 <div class="result-row"><span>水費</span><span id="resAWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resAElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resAGas"></span></div>
-                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resATotal" style="font-weight:bold; font-size:1.2rem;"></span></div>
+                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resATotal" style="font-weight:bold; font-size:1.2rem; color:var(--friend-a);"></span></div>
             </div>
             <div class="role-card roommate-b">
-                <h3 style="margin-top:0; color: #79C5CF;">阿珍</h3>
+                <h3 style="margin-top:0; color: var(--friend-b);">🐣阿珍</h3>
                 <div class="result-row"><span>水費</span><span id="resBWater"></span></div>
                 <div class="result-row"><span>電費</span><span id="resBElec"></span></div>
                 <div class="result-row"><span>瓦斯費</span><span id="resBGas"></span></div>
-                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resBTotal" style="font-weight:bold; font-size:1.2rem;"></span></div>
+                <div class="result-row total-row"><span style="font-weight:bold;">總計</span><span id="resBTotal" style="font-weight:bold; font-size:1.2rem; color:var(--friend-b);"></span></div>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h3>📋 歷史紀錄</h3>
-        <div style="overflow-x: auto;"><table class="history-table">
-            <thead><tr><th>電費月份</th><th>房東應繳</th><th>朋朋應繳</th><th>阿珍應繳</th><th>操作</th></tr></thead>
-            <tbody id="historyBody"></tbody>
-        </table></div>
+        <h3 style="margin-top:0">📋 歷史結算紀錄</h3>
+        <div class="history-container">
+            <div class="history-grid-layout history-header">
+                <div>結算月份</div>
+                <div>費用總額</div>
+                <div class="center-label">房東應繳</div>
+                <div class="center-label">朋朋應繳</div>
+                <div class="center-label">阿珍應繳</div>
+                <div style="text-align: right;">儲存時間</div>
+            </div>
+            <div id="historyBody"></div>
+        </div>
     </div>
 </div>
 
@@ -195,8 +250,6 @@
 
         const usedMeter = data.currMeter - data.prevMeter;
         const landlordElec = Math.floor(usedMeter * data.avgPrice);
-        if (landlordElec > data.totalElec) { alert("錯誤：房東電費大於總電費！"); return; }
-
         const remainingElec = data.totalElec - landlordElec;
         const waterShare = Math.floor(data.totalWater / 3);
         const gasShare = Math.floor(data.totalGas / 2);
@@ -215,7 +268,6 @@
     function displayResult(res) {
         document.getElementById('resultArea').style.display = 'block';
         document.getElementById('resElecMonth').innerText = res.elecMonth;
-        document.getElementById('resWaterMonth').innerText = res.waterMonth;
         document.getElementById('resWaterTotal').innerText = `$${res.totalWater}`;
         document.getElementById('resLWater').innerText = `$${res.resL.water}`;
         document.getElementById('resAvgPrice').innerText = `$${res.avgPrice}`;
@@ -230,30 +282,66 @@
         document.getElementById('resATotal').innerText = `$${res.resA.total}`;
 
         document.getElementById('resBWater').innerText = `$${res.resB.water}`;
-        document.getElementById('resBElec').innerText = `$${res.resB.elec}`;
+        document.getElementById('resBElec').innerText = `$${res.resBElec || res.resB.elec}`; // 修正抓取
         document.getElementById('resBGas').innerText = `$${res.resB.gas}`;
         document.getElementById('resBTotal').innerText = `$${res.resB.total}`;
         window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
     }
 
     function saveToHistory() {
-        const index = historyData.findIndex(i => i.elecMonth === currentCalc.elecMonth);
-        if (index > -1) historyData[index] = currentCalc; else historyData.unshift(currentCalc);
+        if(!currentCalc) return;
+        
+        // 點擊儲存按鈕的瞬間抓取時間
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        
+        currentCalc.saveTime = timestamp;
+
+        const index = historyData.findIndex(i => 
+            i.elecMonth === currentCalc.elecMonth && 
+            i.waterMonth === currentCalc.waterMonth && 
+            i.gasMonth === currentCalc.gasMonth
+        );
+        
+        if (index > -1) historyData[index] = { ...currentCalc }; else historyData.unshift({ ...currentCalc });
+        
         localStorage.setItem('utility_history', JSON.stringify(historyData));
         renderHistory();
-        alert("資料已儲存！");
+        alert("資料已成功儲存！");
     }
 
     function renderHistory() {
-        const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
+        const body = document.getElementById('historyBody'); body.innerHTML = '';
+        if (historyData.length === 0) {
+            body.innerHTML = '<p style="text-align:center; padding:30px; color:#94a3b8">尚無歷史紀錄</p>';
+            return;
+        }
+
         historyData.forEach((item, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${item.elecMonth}</td><td>$${item.resL.total}</td><td>$${item.resA.total}</td><td>$${item.resB.total}</td>
-                <td class="action-btns">
-                    <button class="btn-sm btn-calc" onclick="loadHistory(${index})">編</button>
-                    <button class="btn-sm btn-reset" style="background:#dc2626" onclick="deleteHistory(${index})">刪</button>
-                </td>`;
-            tbody.appendChild(tr);
+            const row = document.createElement('div');
+            row.className = 'history-item history-grid-layout';
+            row.innerHTML = `
+                <div class="month-tag">
+                    <div><span>水</span>${item.waterMonth}</div>
+                    <div><span>電</span>${item.elecMonth}</div>
+                    <div><span>瓦</span>${item.gasMonth}</div>
+                </div>
+                <div class="amount-summary">
+                    <div>水: $${item.totalWater}</div>
+                    <div>電: $${item.totalElec}</div>
+                    <div>瓦: $${item.totalGas}</div>
+                </div>
+                <div class="split-val" style="color:var(--primary)">$${item.resL.total}</div>
+                <div class="split-val" style="color:var(--friend-a)">$${item.resA.total}</div>
+                <div class="split-val" style="color:var(--friend-b)">$${item.resB.total}</div>
+                <div style="text-align: right;">
+                    <span class="time-display">${item.saveTime || '-'}</span>
+                    <div class="action-btns">
+                        <button class="btn-sm" onclick="loadHistory(${index})">📝 編輯</button>
+                        <button class="btn-sm" style="color:var(--danger)" onclick="deleteHistory(${index})">🗑️ 刪除</button>
+                    </div>
+                </div>`;
+            body.appendChild(row);
         });
     }
 
@@ -264,10 +352,10 @@
         calculate();
     }
 
-    function deleteHistory(index) { if(confirm("確定刪除？")) { historyData.splice(index, 1); localStorage.setItem('utility_history', JSON.stringify(historyData)); renderHistory(); } }
+    function deleteHistory(index) { if(confirm("確定刪除此筆紀錄？")) { historyData.splice(index, 1); localStorage.setItem('utility_history', JSON.stringify(historyData)); renderHistory(); } }
 
     function resetForm() {
-        if(confirm("確定清空？")) {
+        if(confirm("確定清空目前輸入？")) {
             document.querySelectorAll('input[type="number"]').forEach(i => i.value = '');
             document.getElementById('prevMeter').value = historyData.length > 0 ? historyData[0].currMeter : "2053";
             document.getElementById('resultArea').style.display = 'none';
